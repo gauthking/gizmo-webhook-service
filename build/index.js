@@ -18,25 +18,22 @@ const axios_1 = __importDefault(require("axios"));
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const app = (0, express_1.default)();
-        const signingKey = "whsec_Ctn5QHtpE8vacDIFzMysUh5m";
+        const signingKey = "whsec_9BOukAhtiMmbZ2zpS9mP04I8";
         const port = 8001;
-        const discordWH = "https://discord.com/api/webhooks/1174257039153823775/M_6lCC30d8bMhP7aqHGHAKePt5rVCfgJ7zZqO8ajZTS2tIhnNDJ3AfJJ8vdabtU4fA7Q";
-        // Middleware needed to validate the alchemy signature
+        const discordWH = "https://discord.com/api/webhooks/1174803945168851058/-g_f2cCPML96SyewwS9qg28BxqiPr1WQd_IqapzhhFkORqJNdn1tCwgnSn1mCEX9EpwY";
         app.use(express_1.default.json({
             verify: webhooksUtil_1.addAlchemyContextToRequest,
         }));
         app.use((0, webhooksUtil_1.validateAlchemySignature)(signingKey));
-        // Register handler for Alchemy Notify webhook events
-        // TODO: update to your own webhook path
         app.post("/webhook-path", (req, res) => {
             const webhookEvent = req.body;
-            // Do stuff with with webhook event here!
-            const data = JSON.stringify(webhookEvent.event);
-            console.log(data);
+            const dt = JSON.stringify(webhookEvent.event);
+            const data = JSON.parse(dt);
+            console.log(data.length);
             const example = {
                 "username": "BOLT",
                 "avatar_url": "https://i.imgur.com/4M34hi2.png",
-                "content": "Text message. Up to 2000 characters.",
+                "content": "",
                 "embeds": [
                     {
                         "author": {
@@ -87,7 +84,6 @@ function main() {
                 .catch(error => {
                 console.error('Error posting message to Discord:', error);
             });
-            // Be sure to respond with 200 when you successfully process the event
             res.send("Alchemy Notify is the best!");
         });
         // Listen to Alchemy Notify webhook events
