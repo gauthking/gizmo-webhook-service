@@ -8,7 +8,7 @@ import axios from "axios";
 
 async function main(): Promise<void> {
     const app = express();
-    const signingKey = "whsec_9BOukAhtiMmbZ2zpS9mP04I8"
+    const signingKey = "whsec_PAptc926BnXV6LBmbMfPevJ0"
     const port = 8001;
     const discordWH = "https://discord.com/api/webhooks/1174803945168851058/-g_f2cCPML96SyewwS9qg28BxqiPr1WQd_IqapzhhFkORqJNdn1tCwgnSn1mCEX9EpwY"
     app.use(
@@ -18,11 +18,12 @@ async function main(): Promise<void> {
     );
     app.use(validateAlchemySignature(signingKey));
 
-    app.post("/webhook-path", (req, res) => {
+    app.post("/webhook-path", async(req, res) => {
         const webhookEvent = req.body as AlchemyWebhookEvent;
-        const dt =  JSON.stringify(webhookEvent.event)
+        const dt =  JSON.stringify(webhookEvent)
         const data = JSON.parse(dt)
-        console.log(data.length)
+        console.log(data)
+
         const example = {
             "username": "BOLT" ,
             "avatar_url": "https://i.imgur.com/4M34hi2.png",
@@ -71,7 +72,8 @@ async function main(): Promise<void> {
                 }
             ]
         }
-        axios.post(discordWH, example).then(response => {
+
+        await axios.post(discordWH, example).then(response => {
             console.log('Message posted to Discord successfully:', response.data);
         })
             .catch(error => { 

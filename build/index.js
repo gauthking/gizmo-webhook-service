@@ -18,18 +18,18 @@ const axios_1 = __importDefault(require("axios"));
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const app = (0, express_1.default)();
-        const signingKey = "whsec_9BOukAhtiMmbZ2zpS9mP04I8";
+        const signingKey = "whsec_PAptc926BnXV6LBmbMfPevJ0";
         const port = 8001;
         const discordWH = "https://discord.com/api/webhooks/1174803945168851058/-g_f2cCPML96SyewwS9qg28BxqiPr1WQd_IqapzhhFkORqJNdn1tCwgnSn1mCEX9EpwY";
         app.use(express_1.default.json({
             verify: webhooksUtil_1.addAlchemyContextToRequest,
         }));
         app.use((0, webhooksUtil_1.validateAlchemySignature)(signingKey));
-        app.post("/webhook-path", (req, res) => {
+        app.post("/webhook-path", (req, res) => __awaiter(this, void 0, void 0, function* () {
             const webhookEvent = req.body;
-            const dt = JSON.stringify(webhookEvent.event);
+            const dt = JSON.stringify(webhookEvent);
             const data = JSON.parse(dt);
-            console.log(data.length);
+            console.log(data);
             const example = {
                 "username": "BOLT",
                 "avatar_url": "https://i.imgur.com/4M34hi2.png",
@@ -78,14 +78,14 @@ function main() {
                     }
                 ]
             };
-            axios_1.default.post(discordWH, example).then(response => {
+            yield axios_1.default.post(discordWH, example).then(response => {
                 console.log('Message posted to Discord successfully:', response.data);
             })
                 .catch(error => {
                 console.error('Error posting message to Discord:', error);
             });
             res.send("Alchemy Notify is the best!");
-        });
+        }));
         // Listen to Alchemy Notify webhook events
         app.listen(port, () => {
             console.log(`Example Alchemy Notify app listening port:${port}`);
