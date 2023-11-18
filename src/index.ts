@@ -36,23 +36,41 @@ async function main(): Promise<void> {
             )
         );
 
+        const transferSingleTopics = data.logs.filter((dta: any) =>
+            dta.topics.includes(
+                "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62"
+            )
+        );
+
         const NFTDATA: any = [];
         let tkaddress = "";
         let sum = 0;
 
         transferTopics.map((r: any) => {
             if (r.topics.length === 4) {
-                const token_id = parseInt(r.topics[3]);
+                // const token_id Ss= parseInt(r.topics[3]);
                 const address = r.address;
-
                 NFTDATA.push({
-                    token_id: token_id,
+                    // token_id: token_id,
                     address: address,
                 });
-            } else if (r.topics.length === 3) {
-                sum += parseInt(r.data);
-                tkaddress = r.address;
 
+            } else if (r.topics.length === 3) {
+                if (parseInt(r.topics[2]) !== 0) {
+                    //erc20s
+                    sum += parseInt(r.data);
+                    tkaddress = r.address;
+                }
+                else {
+                    //nft transfer
+                    const address = r.address;
+                    NFTDATA.push({
+                        // token_id: token_id,
+                        address: address,
+                    });
+                    tkaddress = "ETH"
+                    sum = webhookEvent.event.data.block.transactions[0].value
+                }
             }
         });
 
