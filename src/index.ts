@@ -5,11 +5,17 @@ import {
     AlchemyWebhookEvent,
 } from "./webhooksUtil";
 import axios from "axios";
+import { Alchemy, Network } from "alchemy-sdk";
 
 async function main(): Promise<void> {
     const app = express();
     const signingKey = "whsec_PAptc926BnXV6LBmbMfPevJ0"
     const port = 8001;
+    const config = {
+        apiKey: "thZ6Uov_nnjBegiTs5aXqlqLHHOjEXII",
+        network: Network.ETH_MAINNET,
+    };
+    const alchemy = new Alchemy(config);
     const discordWH = "https://discord.com/api/webhooks/1174803945168851058/-g_f2cCPML96SyewwS9qg28BxqiPr1WQd_IqapzhhFkORqJNdn1tCwgnSn1mCEX9EpwY"
     app.use(
         express.json({
@@ -18,65 +24,74 @@ async function main(): Promise<void> {
     );
     app.use(validateAlchemySignature(signingKey));
 
-    app.post("/webhook-path", async(req, res) => {
+    app.post("/webhook-path", async (req, res) => {
         const webhookEvent = req.body as AlchemyWebhookEvent;
-        const dt =  JSON.stringify(webhookEvent)
-        const data = JSON.parse(dt)
-        console.log(data)
+        const data: any = await alchemy.core.getTransactionReceipt(
+            webhookEvent.event.data.hash
+        );
+
+        const transferTopics = data.logs.filter((dta: any) =>
+            dta.topics.includes(
+                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+            )
+        );
+
+        const NFTDATA: any = [];
+        let tkaddress = "";
+        let sum = 0;
+
+        transferTopics.map((r: any) => {
+            if (r.topics.length === 4) {
+                const token_id = parseInt(r.topics[3]);
+                const address = r.address;
+
+                NFTDATA.push({
+                    token_id: token_id,
+                    address: address,
+                });
+            } else if (r.topics.length === 3) {
+                sum += parseInt(r.data);
+                tkaddress = r.address;
+
+            }
+        });
 
         const example = {
-            "username": "BOLT" ,
-            "avatar_url": "https://i.imgur.com/4M34hi2.png",
-            "content": "",
-            "embeds": [
+            username: "BOLT",
+            avatar_url: "https://i.imgur.com/4M34hi2.png",
+            content: "",
+            embeds: [
                 {
-                    "author": {
-                        "name": "Birdie♫",
-                        "url": "https://www.reddit.com/r/cats/",
-                        "icon_url": "https://i.imgur.com/R66g1Pe.jpg"
-                    },
-                    "title": "Title",
-                    "url": "https://google.com/",
-                    "description": "Text message. You can use Markdown here. *Italic* **bold** __underline__ ~~strikeout~~ [hyperlink](https://google.com) `code`",
-                    "color": 15258703,
-                    "fields": [
+                    title: "NFT and Token Data Notification",
+                    color: 15258703,
+                    fields: [
                         {
-                            "name": "Text",
-                            "value": "More text",
-                            "inline": true
+                            name: "NFT Data",
+                            value: NFTDATA.map((nft: any) => `Token ID: ${nft.token_id}, Address: ${nft.address}`).join("\n"),
+                            inline: true,
                         },
                         {
-                            "name": "Even more text",
-                            "value": "Yup",
-                            "inline": true
+                            name: "Token Data",
+                            value: `Token Address: ${tkaddress}\nTotal Sum: ${sum}`,
+                            inline: true,
                         },
-                        {
-                            "name": "Use `\"inline\": true` parameter, if you want to display fields in the same line.",
-                            "value": "okay..."
-                        },
-                        {
-                            "name": "Thanks!",
-                            "value": "You're welcome :wink:"
-                        }
                     ],
-                    "thumbnail": {
-                        "url": "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg"
+                    thumbnail: {
+                        url: "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg",
                     },
-                    "image": {
-                        "url": "https://upload.wikimedia.org/wikipedia/commons/5/5a/A_picture_from_China_every_day_108.jpg"
+                    footer: {
+                        text: "Woah! So cool! :smirk:",
+                        icon_url: "https://i.imgur.com/fKL31aD.jpg",
                     },
-                    "footer": {
-                        "text": "Woah! So cool! :smirk:",
-                        "icon_url": "https://i.imgur.com/fKL31aD.jpg"
-                    }
-                }
-            ]
-        }
+                },
+            ],
+        };
+
 
         await axios.post(discordWH, example).then(response => {
             console.log('Message posted to Discord successfully:', response.data);
         })
-            .catch(error => { 
+            .catch(error => {
                 console.error('Error posting message to Discord:', error);
             });
         res.send("Alchemy Notify is the best!");

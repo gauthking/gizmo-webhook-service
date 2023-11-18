@@ -15,11 +15,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const webhooksUtil_1 = require("./webhooksUtil");
 const axios_1 = __importDefault(require("axios"));
+const alchemy_sdk_1 = require("alchemy-sdk");
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const app = (0, express_1.default)();
         const signingKey = "whsec_PAptc926BnXV6LBmbMfPevJ0";
         const port = 8001;
+        const config = {
+            apiKey: "thZ6Uov_nnjBegiTs5aXqlqLHHOjEXII",
+            network: alchemy_sdk_1.Network.ETH_MAINNET,
+        };
+        const alchemy = new alchemy_sdk_1.Alchemy(config);
         const discordWH = "https://discord.com/api/webhooks/1174803945168851058/-g_f2cCPML96SyewwS9qg28BxqiPr1WQd_IqapzhhFkORqJNdn1tCwgnSn1mCEX9EpwY";
         app.use(express_1.default.json({
             verify: webhooksUtil_1.addAlchemyContextToRequest,
@@ -27,56 +33,54 @@ function main() {
         app.use((0, webhooksUtil_1.validateAlchemySignature)(signingKey));
         app.post("/webhook-path", (req, res) => __awaiter(this, void 0, void 0, function* () {
             const webhookEvent = req.body;
-            const dt = JSON.stringify(webhookEvent);
-            const data = JSON.parse(dt);
-            console.log(data);
+            const data = yield alchemy.core.getTransactionReceipt(webhookEvent.event.data.hash);
+            const transferTopics = data.logs.filter((dta) => dta.topics.includes("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"));
+            const NFTDATA = [];
+            let tkaddress = "";
+            let sum = 0;
+            transferTopics.map((r) => {
+                if (r.topics.length === 4) {
+                    const token_id = parseInt(r.topics[3]);
+                    const address = r.address;
+                    NFTDATA.push({
+                        token_id: token_id,
+                        address: address,
+                    });
+                }
+                else if (r.topics.length === 3) {
+                    sum += parseInt(r.data);
+                    tkaddress = r.address;
+                }
+            });
             const example = {
-                "username": "BOLT",
-                "avatar_url": "https://i.imgur.com/4M34hi2.png",
-                "content": "",
-                "embeds": [
+                username: "BOLT",
+                avatar_url: "https://i.imgur.com/4M34hi2.png",
+                content: "",
+                embeds: [
                     {
-                        "author": {
-                            "name": "Birdie♫",
-                            "url": "https://www.reddit.com/r/cats/",
-                            "icon_url": "https://i.imgur.com/R66g1Pe.jpg"
-                        },
-                        "title": "Title",
-                        "url": "https://google.com/",
-                        "description": "Text message. You can use Markdown here. *Italic* **bold** __underline__ ~~strikeout~~ [hyperlink](https://google.com) `code`",
-                        "color": 15258703,
-                        "fields": [
+                        title: "NFT and Token Data Notification",
+                        color: 15258703,
+                        fields: [
                             {
-                                "name": "Text",
-                                "value": "More text",
-                                "inline": true
+                                name: "NFT Data",
+                                value: NFTDATA.map((nft) => `Token ID: ${nft.token_id}, Address: ${nft.address}`).join("\n"),
+                                inline: true,
                             },
                             {
-                                "name": "Even more text",
-                                "value": "Yup",
-                                "inline": true
+                                name: "Token Data",
+                                value: `Token Address: ${tkaddress}\nTotal Sum: ${sum}`,
+                                inline: true,
                             },
-                            {
-                                "name": "Use `\"inline\": true` parameter, if you want to display fields in the same line.",
-                                "value": "okay..."
-                            },
-                            {
-                                "name": "Thanks!",
-                                "value": "You're welcome :wink:"
-                            }
                         ],
-                        "thumbnail": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg"
+                        thumbnail: {
+                            url: "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg",
                         },
-                        "image": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/5/5a/A_picture_from_China_every_day_108.jpg"
+                        footer: {
+                            text: "Woah! So cool! :smirk:",
+                            icon_url: "https://i.imgur.com/fKL31aD.jpg",
                         },
-                        "footer": {
-                            "text": "Woah! So cool! :smirk:",
-                            "icon_url": "https://i.imgur.com/fKL31aD.jpg"
-                        }
-                    }
-                ]
+                    },
+                ],
             };
             yield axios_1.default.post(discordWH, example).then(response => {
                 console.log('Message posted to Discord successfully:', response.data);
