@@ -148,6 +148,7 @@ async function main(): Promise<void> {
             })
         }
 
+        // checking inside of transferBatch topics
         if (transferBatchTopics.length !== 0) {
             transferBatchTopics.map((bth: any) => {
                 const token_address = bth.address;
