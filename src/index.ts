@@ -116,11 +116,18 @@ async function main(): Promise<void> {
                     console.log(nftOrder)
                     nftOrder.order.protocol_data.parameters.offer.map((offer: any) => {
                         if (offer.itemType === 2) {
-                            let nft = {
-                                tokenId: offer.identifierOrCriteria,
-                                nftAddress: offer.token
+                            const token_address = offer.token;
+                            const token_id = parseInt(offer.identifierOrCriteria)
+                            const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
+                            if (existingTokenIndex !== -1) {
+                                (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
+                            } else {
+                                // Add a new entry to NFTDATA
+                                NFTDATA.push({
+                                    tokenId: [token_id],
+                                    nftAddress: token_address,
+                                });
                             }
-                            NFTDATA.push(nft);
                         }
                     })
                 } catch (error) {
