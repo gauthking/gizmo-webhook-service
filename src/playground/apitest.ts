@@ -44,6 +44,8 @@ const caller = async () => {
         const NFTDATA: Array<{
             tokenId: number[] | null | undefined,
             nftAddress: string | null | undefined,
+            media: string | null | undefined,
+            name: string | null | undefined
         }> = [];
         // let tkaddress: string | null | undefined = "";
         let sum: number = 0;
@@ -62,9 +64,14 @@ const caller = async () => {
                         (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
                     } else {
                         // Add a new entry to NFTDATA
+                        const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
+                   const media = metadata.image.pngUrl
+                   const name = metadata.name
                         NFTDATA.push({
                             tokenId: [token_id],
                             nftAddress: token_address,
+                            media,
+                            name
                         });
                     }
                     //ERC20's transferred
@@ -79,7 +86,7 @@ const caller = async () => {
         }
 
         if (transferSingleTopics.length !== 0) {
-            transferSingleTopics.map((tr: any) => {
+            transferSingleTopics.map(async(tr: any) => {
                 const token_address = tr.address;
                 const abi = ["uint256", "uint256"]
                 const decodeData = ethers.utils.defaultAbiCoder.decode(abi, tr.data)
@@ -90,9 +97,14 @@ const caller = async () => {
                     (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
                 } else {
                     // Add a new entry to NFTDATA
+                   const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
+                   const media = metadata.image.pngUrl
+                   const name = metadata.name
                     NFTDATA.push({
                         tokenId: [token_id],
                         nftAddress: token_address,
+                        media,
+                        name
                     });
                 }
             })
@@ -106,7 +118,7 @@ const caller = async () => {
 
 
         if (transferBatchTopics.length !== 0) {
-            transferBatchTopics.map((bth: any) => {
+            transferBatchTopics.map(async(bth: any) => {
                 const token_address = bth.address;
                 const abi = ["uint256[]", "uint256[]"]
                 const decodedData = defaultAbiCoder.decode(abi, bth.data);
@@ -117,9 +129,15 @@ const caller = async () => {
                 if (existingTokenIndex !== -1) {
                     (NFTDATA[existingTokenIndex] as any).tokenId.push(tokenIds)
                 } else {
+            
+                    const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
+                    const media = metadata.image.pngUrl
+                    const name = metadata.name
                     NFTDATA.push({
                         tokenId: tokenIds,
                         nftAddress: token_address,
+                        media,
+                        name
                     });
                 }
             })
@@ -146,9 +164,14 @@ const caller = async () => {
                                 (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
                             } else {
                                 // Add a new entry to NFTDATA
+                                const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
+                    const media = metadata.image.pngUrl
+                    const name = metadata.name
                                 NFTDATA.push({
                                     tokenId: [token_id],
                                     nftAddress: token_address,
+                                    media,
+                                    name
                                 });
                             }
                         }
