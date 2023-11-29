@@ -7,6 +7,7 @@ import {
 import axios from "axios";
 import { Alchemy, Network } from "alchemy-sdk";
 import { defaultAbiCoder } from "ethers/lib/utils";
+import { ethers } from "ethers";
 const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 
 async function main(): Promise<void> {
@@ -66,6 +67,7 @@ async function main(): Promise<void> {
         const NFTDATA: Array<{ tokenId: number[] | null | undefined, nftAddress: string | null | undefined }> = [];
         let tkaddress: string | null | undefined = "";
         let sum: number = 0;
+        var ERC = [];
 
         // checking inside of transfer topics
         if (transferTopics.length !== 0) {
@@ -128,7 +130,15 @@ async function main(): Promise<void> {
                                     nftAddress: token_address,
                                 });
                             }
+                            
                         }
+                        if (offer.itemType === 1) {
+                            ERC.push({
+                                tokenAddress: offer.token,
+                                value: offer.endAmount
+                            });
+                        }
+                        
                     })
                 } catch (error) {
                     console.log("an err occured at fetching nftorder");
@@ -140,8 +150,15 @@ async function main(): Promise<void> {
         // checking inside of transferSingle topics
         if (transferSingleTopics.length !== 0) {
             transferSingleTopics.map((tr: any) => {
+
+            
                 const token_address = tr.address;
-                const token_id = parseInt(tr.data);
+                const abi = ["uint256", "uint256"]
+
+                
+            const decodeData = ethers.utils.defaultAbiCoder.decode(abi,tr.data)
+            const token_id = parseInt(decodeData[0]._hex)
+
                 const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
                 if (existingTokenIndex !== -1) {
                     (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
