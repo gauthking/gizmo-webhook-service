@@ -22,7 +22,7 @@ async function main(): Promise<void> {
     sdk.server('https://api.opensea.io');
 
     const alchemy = new Alchemy(config);
-    const discordWH = "https://discord.com/api/webhooks/1174803945168851058/-g_f2cCPML96SyewwS9qg28BxqiPr1WQd_IqapzhhFkORqJNdn1tCwgnSn1mCEX9EpwY"
+    const discordWH = "https://discord.com/api/webhooks/1174257039153823775/M_6lCC30d8bMhP7aqHGHAKePt5rVCfgJ7zZqO8ajZTS2tIhnNDJ3AfJJ8vdabtU4fA7Q"
 
 
     app.use(
@@ -67,7 +67,7 @@ async function main(): Promise<void> {
         const NFTDATA: Array<{ tokenId: number[] | null | undefined, nftAddress: string | null | undefined }> = [];
         let tkaddress: string | null | undefined = "";
         let sum: number = 0;
-        var ERC = [];
+        let ERC: any[] = [];
 
         // checking inside of transfer topics
         if (transferTopics.length !== 0) {
@@ -130,7 +130,7 @@ async function main(): Promise<void> {
                                     nftAddress: token_address,
                                 });
                             }
-                            
+
                         }
                         if (offer.itemType === 1) {
                             ERC.push({
@@ -138,7 +138,7 @@ async function main(): Promise<void> {
                                 value: offer.endAmount
                             });
                         }
-                        
+
                     })
                 } catch (error) {
                     console.log("an err occured at fetching nftorder");
@@ -150,15 +150,10 @@ async function main(): Promise<void> {
         // checking inside of transferSingle topics
         if (transferSingleTopics.length !== 0) {
             transferSingleTopics.map((tr: any) => {
-
-            
                 const token_address = tr.address;
                 const abi = ["uint256", "uint256"]
-
-                
-            const decodeData = ethers.utils.defaultAbiCoder.decode(abi,tr.data)
-            const token_id = parseInt(decodeData[0]._hex)
-
+                const decodeData = ethers.utils.defaultAbiCoder.decode(abi, tr.data)
+                const token_id = parseInt(decodeData[0]._hex)
                 const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
                 if (existingTokenIndex !== -1) {
                     (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
@@ -179,9 +174,7 @@ async function main(): Promise<void> {
                 const abi = ["uint256[]", "uint256[]"]
                 const decodedData = defaultAbiCoder.decode(abi, bth.data);
                 const tokenIds = decodedData[0].map((id: any) => parseInt(id._hex))
-
                 const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
-
                 if (existingTokenIndex !== -1) {
                     (NFTDATA[existingTokenIndex] as any).tokenId.push(tokenIds)
                 } else {
@@ -193,47 +186,88 @@ async function main(): Promise<void> {
             })
         }
 
-
-
-        const example = {
-            username: "BOLT",
-            avatar_url: "https://i.imgur.com/4M34hi2.png",
-            content: "",
-            embeds: [
-                {
-                    title: "NFT and Token Data Notification",
-                    color: 15258703,
-                    fields: [
-                        {
-                            name: "NFT Data",
-                            value: NFTDATA.map((nft: any) => `Token ID: ${nft.token_id}, Address: ${nft.address}`).join("\n"),
-                            inline: true,
+        if (ERC.length === 0) {
+            const example = {
+                username: "BOLT",
+                avatar_url: "https://i.imgur.com/4M34hi2.png",
+                content: "",
+                embeds: [
+                    {
+                        title: "NFT and Token Data Notification",
+                        color: 15258703,
+                        fields: [
+                            {
+                                name: "NFT Data",
+                                value: NFTDATA.map((nft: any) => `Token ID: ${nft.token_id}, Address: ${nft.address}`).join("\n"),
+                                inline: true,
+                            },
+                            {
+                                name: "Token Data",
+                                value: `ETH Value: ${webhookEvent.event.data.value}`,
+                                inline: true,
+                            },
+                        ],
+                        thumbnail: {
+                            url: "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg",
                         },
-                        {
-                            name: "Token Data",
-                            value: `Token Address: ${tkaddress}\nTotal Sum: ${sum}`,
-                            inline: true,
+                        footer: {
+                            text: "Woah! So cool! :smirk:",
+                            icon_url: "https://i.imgur.com/fKL31aD.jpg",
                         },
-                    ],
-                    thumbnail: {
-                        url: "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg",
                     },
-                    footer: {
-                        text: "Woah! So cool! :smirk:",
-                        icon_url: "https://i.imgur.com/fKL31aD.jpg",
+                ],
+            };
+            await axios.post(discordWH, example).then(response => {
+                console.log('Message posted to Discord successfully:', response.data);
+            })
+                .catch(error => {
+                    console.error('Error posting message to Discord:', error);
+                });
+            res.send("Alchemy Notify is the best!");
+        } else {
+            const example = {
+                username: "BOLT",
+                avatar_url: "https://i.imgur.com/4M34hi2.png",
+                content: "",
+                embeds: [
+                    {
+                        title: "NFT and Token Data Notification",
+                        color: 15258703,
+                        fields: [
+                            {
+                                name: "NFT Data",
+                                value: NFTDATA.map((nft: any) => `Token ID: ${nft.token_id}, Address: ${nft.address}`).join("\n"),
+                                inline: true,
+                            },
+                            {
+                                name: "Token Data",
+                                value: `Token Address: ${tkaddress}\nTotal Sum: ${sum}`,
+                                inline: true,
+                            },
+                            {
+                                name: "Txn Value",
+                                value: `ETH Value: ${webhookEvent.event.data.value}`,
+                                inline: true,
+                            },
+                        ],
+                        thumbnail: {
+                            url: "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg",
+                        },
+                        footer: {
+                            text: "Woah! So cool! :smirk:",
+                            icon_url: "https://i.imgur.com/fKL31aD.jpg",
+                        },
                     },
-                },
-            ],
-        };
-
-
-        await axios.post(discordWH, example).then(response => {
-            console.log('Message posted to Discord successfully:', response.data);
-        })
-            .catch(error => {
-                console.error('Error posting message to Discord:', error);
-            });
-        res.send("Alchemy Notify is the best!");
+                ],
+            };
+            await axios.post(discordWH, example).then(response => {
+                console.log('Message posted to Discord successfully:', response.data);
+            })
+                .catch(error => {
+                    console.error('Error posting message to Discord:', error);
+                });
+            res.send("Alchemy Notify is the best!");
+        }
     });
 
     // Listen to Alchemy Notify webhook events
