@@ -2,6 +2,7 @@ import { Alchemy, Network } from "alchemy-sdk";
 import axios from "axios";
 import { ethers } from "ethers";
 import { defaultAbiCoder } from "ethers/lib/utils";
+import { ERC20ABI } from "../helpers/utils";
 
 const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 
@@ -20,6 +21,8 @@ const caller = async () => {
         const data: any = await alchemy.core.getTransactionReceipt(
             "0xd2060aad32bc09072fb3dd876058e2208a01a0d750a91443115b4f2012541658"
         );
+
+        const provider = new ethers.providers.JsonRpcProvider("https://eth-mainnet.g.alchemy.com/v2/iYu9qle1mLqmoe-Co3yxqRfTQgzMUukN")
 
         // console.log("data -", data)
 
@@ -41,6 +44,12 @@ const caller = async () => {
             )
         );
 
+        const transferBatchTopics: any[] = data.logs.filter((dta: any) =>
+            dta.topics.includes(
+                "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb"
+            )
+        );
+
         const NFTDATA: Array<{
             tokenId: number[] | null | undefined,
             nftAddress: string | null | undefined,
@@ -49,8 +58,8 @@ const caller = async () => {
         }> = [];
         // let tkaddress: string | null | undefined = "";
         let sum: number = 0;
-        const ERC: any[] = [];
-        let nativeTokenValue = 0;
+        const ERC: Array<{ tokenAddress: string | null | undefined, tokenName?: string | null | undefined, value: number | null | undefined }> = [];
+        // let nativeTokenValue = 0;
 
         // checking inside of transfer topics
         if (transferTopics.length !== 0) {
@@ -64,9 +73,9 @@ const caller = async () => {
                         (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
                     } else {
                         // Add a new entry to NFTDATA
-                        const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
-                   const media = metadata.image.pngUrl
-                   const name = metadata.name
+                        const metadata = await alchemy.nft.getNftMetadata(token_address, token_id)
+                        const media = metadata.image.pngUrl
+                        const name = metadata.name
                         NFTDATA.push({
                             tokenId: [token_id],
                             nftAddress: token_address,
@@ -80,13 +89,14 @@ const caller = async () => {
                         //erc20s
                         sum += parseInt(r.data);
                         tkaddress = r.address;
+                        const existingTokenIndex: any = ERC.findIndex((entry) => entry.tokenAddress === tkaddress);
                     }
                 }
             }));
         }
 
         if (transferSingleTopics.length !== 0) {
-            transferSingleTopics.map(async(tr: any) => {
+            transferSingleTopics.map(async (tr: any) => {
                 const token_address = tr.address;
                 const abi = ["uint256", "uint256"]
                 const decodeData = ethers.utils.defaultAbiCoder.decode(abi, tr.data)
@@ -97,9 +107,9 @@ const caller = async () => {
                     (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
                 } else {
                     // Add a new entry to NFTDATA
-                   const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
-                   const media = metadata.image.pngUrl
-                   const name = metadata.name
+                    const metadata = await alchemy.nft.getNftMetadata(token_address, token_id)
+                    const media = metadata.image.pngUrl
+                    const name = metadata.name
                     NFTDATA.push({
                         tokenId: [token_id],
                         nftAddress: token_address,
@@ -110,15 +120,10 @@ const caller = async () => {
             })
         }
 
-        const transferBatchTopics: any[] = data.logs.filter((dta: any) =>
-            dta.topics.includes(
-                "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb"
-            )
-        );
 
 
         if (transferBatchTopics.length !== 0) {
-            transferBatchTopics.map(async(bth: any) => {
+            transferBatchTopics.map(async (bth: any) => {
                 const token_address = bth.address;
                 const abi = ["uint256[]", "uint256[]"]
                 const decodedData = defaultAbiCoder.decode(abi, bth.data);
@@ -129,8 +134,7 @@ const caller = async () => {
                 if (existingTokenIndex !== -1) {
                     (NFTDATA[existingTokenIndex] as any).tokenId.push(tokenIds)
                 } else {
-            
-                    const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
+                    const metadata = await alchemy.nft.getNftMetadata(token_address, token_id)
                     const media = metadata.image.pngUrl
                     const name = metadata.name
                     NFTDATA.push({
@@ -164,9 +168,9 @@ const caller = async () => {
                                 (NFTDATA[existingTokenIndex] as any).tokenId.push(token_id);
                             } else {
                                 // Add a new entry to NFTDATA
-                                const metadata = await alchemy.nft.getNftMetadata(token_address,token_id)
-                    const media = metadata.image.pngUrl
-                    const name = metadata.name
+                                const metadata = await alchemy.nft.getNftMetadata(token_address, token_id)
+                                const media = metadata.image.pngUrl
+                                const name = metadata.name
                                 NFTDATA.push({
                                     tokenId: [token_id],
                                     nftAddress: token_address,
@@ -176,8 +180,10 @@ const caller = async () => {
                             }
                         }
                         if (offer.itemType === 1) {
+                            const erc20 = new ethers.Contract(offer.token, ERC20ABI, provider)
                             ERC.push({
                                 tokenAddress: offer.token,
+                                tokenName: await erc20.name() || "token_fallback",
                                 value: offer.endAmount
                             });
                         }
@@ -190,7 +196,7 @@ const caller = async () => {
             }));
         }
 
-        console.log(NFTDATA.length)
+        // console.log(NFTDATA.length)
         if (ERC.length === 0) {
             const formattedNFTData = NFTDATA.map((nft) => `Token IDs: ${(nft.tokenId as number[]).join(', ')}\nNFT Address: ${nft.nftAddress}`).join("\n\n");
 
@@ -232,6 +238,7 @@ const caller = async () => {
                 });
         } else {
             const formattedNFTData = NFTDATA.map((nft) => `Token IDs: ${(nft.tokenId as number[]).join(', ')}\nNFT Address: ${nft.nftAddress}`).join("\n\n");
+            const formattedERCData = ERC.map((erc) => `Token Name: ${erc.tokenName}\nToken Address: ${erc.tokenAddress}\nValue: ${(erc.value as number) / 10 ** 18}`).join("\n\n");
 
             const example = {
                 username: "BOLT",
@@ -249,7 +256,7 @@ const caller = async () => {
                             },
                             {
                                 name: "Token Data",
-                                value: `Token Address: ${tkaddress}\nTotal Sum: ${sum / 10 ** 18}`,
+                                value: formattedERCData,
                                 inline: true,
                             },
                             // {
