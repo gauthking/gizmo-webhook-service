@@ -17,7 +17,7 @@ const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 
 async function main(): Promise<void> {
     const app = express();
-    const signingKey = "whsec_T1fRV7efblJtDV3v0Ue7aJoW"
+    const signingKey = "whsec_pGSFciNJ9TXajN6uMlcO9IGq"
     const port = 8001;
     const config = {
         apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
@@ -41,17 +41,25 @@ async function main(): Promise<void> {
     app.use(validateAlchemySignature(signingKey));
 
 
+    var asset : any;
+    var value : any;
     //MAIN API POST FOR WEBHOOK
     app.post("/webhook-path", async (req, res) => {
-        console.log("hi")
         const webhookEvent = req.body as AlchemyWebhookEvent;
-        console.log(webhookEvent.event)
-        if (webhookEvent.event.data.block.transactions.length === 0) {
-            return
+
+        console.log(webhookEvent.event.activity)
+
+        if(webhookEvent.event.activity[0].hasOwnProperty('asset'))
+        {
+             asset = webhookEvent.event.activity[0].asset
+             value = webhookEvent.event.activity[0].value
         }
+
+        // if (webhookEvent.event.data.block.transactions.length === 0) {
+        //     return
+        // }
         const data: any = await alchemy.core.getTransactionReceipt(
-            webhookEvent.event.data.block.hash
-        );
+            webhookEvent.event.activity[0].hash);
 
         const transferTopics: any[] = data.logs.filter((dta: any) =>
             dta.topics.includes(
@@ -255,7 +263,7 @@ async function main(): Promise<void> {
                             },
                             {
                                 name: "Txn Value",
-                                value: `ETH Value: ${webhookEvent.event.data.block.value}`,
+                                value: `${asset} Value: ${value}`,
                                 inline: true,
                             },
                         ],

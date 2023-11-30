@@ -23,7 +23,7 @@ const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const app = (0, express_1.default)();
-        const signingKey = "whsec_JnjNsrsqtfVq5SQgaE0LQUfy";
+        const signingKey = "whsec_pGSFciNJ9TXajN6uMlcO9IGq";
         const port = 8001;
         const config = {
             apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
@@ -38,19 +38,23 @@ function main() {
             verify: webhooksUtil_1.addAlchemyContextToRequest,
         }));
         app.use((0, webhooksUtil_1.validateAlchemySignature)(signingKey));
+        var asset;
+        var value;
         //MAIN API POST FOR WEBHOOK
         app.post("/webhook-path", (req, res) => __awaiter(this, void 0, void 0, function* () {
-            console.log("hi");
             const webhookEvent = req.body;
-            console.log(webhookEvent.event.data.block.transactions);
-            if (webhookEvent.event.data.block.transactions.length === 0) {
-                return;
+            console.log(webhookEvent.event.activity);
+            if (webhookEvent.event.activity[0].hasOwnProperty('asset')) {
+                asset = webhookEvent.event.activity[0].asset;
+                value = webhookEvent.event.activity[0].value;
             }
-            const data = yield alchemy.core.getTransactionReceipt(webhookEvent.event.data.block.hash);
-            console.log(data);
-            const transferTopics = yield webhookEvent.event.data.block.transactions[0].logs.filter((dta) => dta.topics.includes(utils_1.transferTopic));
-            const transferSingleTopics = yield webhookEvent.event.data.block.transactions[0].logs.filter((dta) => dta.topics.includes(utils_1.transferSingleTopic));
-            const orderFulfilledTopicsSeaport = yield webhookEvent.event.data.block.transactions[0].logs.filter((dta) => dta.topics.includes(utils_1.orderFulfilledTopic));
+            // if (webhookEvent.event.data.block.transactions.length === 0) {
+            //     return
+            // }
+            const data = yield alchemy.core.getTransactionReceipt(webhookEvent.event.activity[0].hash);
+            const transferTopics = data.logs.filter((dta) => dta.topics.includes(utils_1.transferTopic));
+            const transferSingleTopics = data.logs.filter((dta) => dta.topics.includes(utils_1.transferSingleTopic));
+            const orderFulfilledTopicsSeaport = data.logs.filter((dta) => dta.topics.includes(utils_1.orderFulfilledTopic));
             const NFTDATA = [];
             // let tkaddress: string | null | undefined = "";
             let sum = 0;
@@ -223,7 +227,7 @@ function main() {
                                 },
                                 {
                                     name: "Txn Value",
-                                    value: `ETH Value: ${webhookEvent.event.data.block.value}`,
+                                    value: `${asset} Value: ${value}`,
                                     inline: true,
                                 },
                             ],
