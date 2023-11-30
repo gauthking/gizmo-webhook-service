@@ -23,14 +23,14 @@ const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const app = (0, express_1.default)();
-        const signingKey = "whsec_D3V8jPiaLyF3GnKAgqUo2G22";
+        const signingKey = "whsec_JnjNsrsqtfVq5SQgaE0LQUfy";
         const port = 8001;
         const config = {
-            apiKey: "thZ6Uov_nnjBegiTs5aXqlqLHHOjEXII",
-            network: alchemy_sdk_1.Network.ETH_MAINNET,
+            apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
+            network: alchemy_sdk_1.Network.MATIC_MUMBAI,
         };
-        sdk.auth('8532fa9c5bdb49d78fb20d8c5bf1059d');
-        sdk.server('https://api.opensea.io');
+        yield sdk.auth('8532fa9c5bdb49d78fb20d8c5bf1059d');
+        yield sdk.server('https://api.opensea.io');
         const alchemy = new alchemy_sdk_1.Alchemy(config);
         const provider = new ethers_1.ethers.providers.JsonRpcProvider("https://eth-mainnet.g.alchemy.com/v2/iYu9qle1mLqmoe-Co3yxqRfTQgzMUukN");
         const discordWH = "https://discord.com/api/webhooks/1174257039153823775/M_6lCC30d8bMhP7aqHGHAKePt5rVCfgJ7zZqO8ajZTS2tIhnNDJ3AfJJ8vdabtU4fA7Q";
@@ -40,11 +40,17 @@ function main() {
         app.use((0, webhooksUtil_1.validateAlchemySignature)(signingKey));
         //MAIN API POST FOR WEBHOOK
         app.post("/webhook-path", (req, res) => __awaiter(this, void 0, void 0, function* () {
+            console.log("hi");
             const webhookEvent = req.body;
-            const data = yield alchemy.core.getTransactionReceipt(webhookEvent.event.data.hash);
-            const transferTopics = data.logs.filter((dta) => dta.topics.includes(utils_1.transferTopic));
-            const transferSingleTopics = data.logs.filter((dta) => dta.topics.includes(utils_1.transferSingleTopic));
-            const orderFulfilledTopicsSeaport = data.logs.filter((dta) => dta.topics.includes(utils_1.orderFulfilledTopic));
+            console.log(webhookEvent.event.data.block.transactions);
+            if (webhookEvent.event.data.block.transactions.length === 0) {
+                return;
+            }
+            const data = yield alchemy.core.getTransactionReceipt(webhookEvent.event.data.block.hash);
+            console.log(data);
+            const transferTopics = yield webhookEvent.event.data.block.transactions[0].logs.filter((dta) => dta.topics.includes(utils_1.transferTopic));
+            const transferSingleTopics = yield webhookEvent.event.data.block.transactions[0].logs.filter((dta) => dta.topics.includes(utils_1.transferSingleTopic));
+            const orderFulfilledTopicsSeaport = yield webhookEvent.event.data.block.transactions[0].logs.filter((dta) => dta.topics.includes(utils_1.orderFulfilledTopic));
             const NFTDATA = [];
             // let tkaddress: string | null | undefined = "";
             let sum = 0;
@@ -217,7 +223,7 @@ function main() {
                                 },
                                 {
                                     name: "Txn Value",
-                                    value: `ETH Value: ${webhookEvent.event.data.value}`,
+                                    value: `ETH Value: ${webhookEvent.event.data.block.value}`,
                                     inline: true,
                                 },
                             ],
@@ -287,6 +293,7 @@ function main() {
                 });
                 // res.send("Alchemy Notify is the best!");
             }
+            res.send("Alchemy Notify is the best!");
         }));
         // Listen to Alchemy Notify webhook events
         app.listen(port, () => {

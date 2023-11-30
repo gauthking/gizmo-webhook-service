@@ -17,17 +17,19 @@ const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 
 async function main(): Promise<void> {
     const app = express();
-    const signingKey = "whsec_D3V8jPiaLyF3GnKAgqUo2G22"
+    const signingKey = "whsec_T1fRV7efblJtDV3v0Ue7aJoW"
     const port = 8001;
     const config = {
-        apiKey: "thZ6Uov_nnjBegiTs5aXqlqLHHOjEXII",
-        network: Network.ETH_MAINNET,
+        apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
+        network: Network.MATIC_MUMBAI,
     };
-    sdk.auth('8532fa9c5bdb49d78fb20d8c5bf1059d');
-    sdk.server('https://api.opensea.io');
+
+    await sdk.auth('8532fa9c5bdb49d78fb20d8c5bf1059d');
+    await sdk.server('https://api.opensea.io');
 
     const alchemy = new Alchemy(config);
     const provider = new ethers.providers.JsonRpcProvider("https://eth-mainnet.g.alchemy.com/v2/iYu9qle1mLqmoe-Co3yxqRfTQgzMUukN")
+
     const discordWH = "https://discord.com/api/webhooks/1174257039153823775/M_6lCC30d8bMhP7aqHGHAKePt5rVCfgJ7zZqO8ajZTS2tIhnNDJ3AfJJ8vdabtU4fA7Q"
 
 
@@ -41,9 +43,14 @@ async function main(): Promise<void> {
 
     //MAIN API POST FOR WEBHOOK
     app.post("/webhook-path", async (req, res) => {
+        console.log("hi")
         const webhookEvent = req.body as AlchemyWebhookEvent;
+        console.log(webhookEvent.event)
+        if (webhookEvent.event.data.block.transactions.length === 0) {
+            return
+        }
         const data: any = await alchemy.core.getTransactionReceipt(
-            webhookEvent.event.data.hash
+            webhookEvent.event.data.block.hash
         );
 
         const transferTopics: any[] = data.logs.filter((dta: any) =>
@@ -224,7 +231,7 @@ async function main(): Promise<void> {
 
         console.log(uniqueNFTData)
         // checking inside of transferBatch topics
-      
+
 
         if (ERC.length === 0) {
             const formattedNFTData = uniqueNFTData.map((nft) => {
@@ -248,7 +255,7 @@ async function main(): Promise<void> {
                             },
                             {
                                 name: "Txn Value",
-                                value: `ETH Value: ${webhookEvent.event.data.value}`,
+                                value: `ETH Value: ${webhookEvent.event.data.block.value}`,
                                 inline: true,
                             },
                         ],
@@ -318,6 +325,7 @@ async function main(): Promise<void> {
                 });
             // res.send("Alchemy Notify is the best!");
         }
+        res.send("Alchemy Notify is the best!");
     });
 
     // Listen to Alchemy Notify webhook events
