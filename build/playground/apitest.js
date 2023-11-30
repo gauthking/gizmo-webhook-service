@@ -72,7 +72,19 @@ const caller = () => __awaiter(void 0, void 0, void 0, function* () {
                     if (parseInt(r.topics[2]) !== 0) {
                         //erc20s
                         sum += parseInt(r.data);
-                        tkaddress = r.address;
+                        const erc20 = new ethers_1.ethers.Contract(r.address, utils_1.ERC20ABI, provider);
+                        const existingTokenIndex = ERC.findIndex((entry) => entry.tokenAddress === r.address);
+                        if (existingTokenIndex !== -1) {
+                            let newValue = ERC[existingTokenIndex].value + parseInt(r.data);
+                            ERC[existingTokenIndex].value = newValue;
+                        }
+                        else {
+                            ERC.push({
+                                tokenAddress: r.address,
+                                tokenName: (yield erc20.name()) || "token_fallback",
+                                value: parseInt(r.data)
+                            });
+                        }
                     }
                 }
             }
