@@ -13,11 +13,21 @@ import { ERC20ABI } from "./helpers/utils";
 
 const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 
+function decodeHexAddress(hexString: any) {
+    // Remove "0x" prefix if present
+    hexString = hexString.replace(/^0x/, '');
+
+    // Remove leading zeros
+    hexString = hexString.replace(/^0+/, '');
+
+    // Convert to lowercase
+    return '0x' + hexString.toLowerCase();
+}
 
 
 async function main(): Promise<void> {
     const app = express();
-    const signingKey = "whsec_pGSFciNJ9TXajN6uMlcO9IGq"
+    const signingKey = "whsec_WjtWEnxu8YFuSA6Y1bfgl24C"
     const port = 8001;
     const config = {
         apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
@@ -44,7 +54,10 @@ async function main(): Promise<void> {
     var asset : any;
     var value : any;
     //MAIN API POST FOR WEBHOOK
+
+    const userAddress = "0xccac4dedb8071a54be6e5c4c4319965d33450a82"
     app.post("/webhook-path", async (req, res) => {
+        try{
         const webhookEvent = req.body as AlchemyWebhookEvent;
 
         console.log(webhookEvent.event.activity)
@@ -80,7 +93,7 @@ async function main(): Promise<void> {
         );
 
         const NFTDATA: Array<{
-            tokenInfo: Array<{ tokenId: number, media: string, name: string }>,
+            tokenInfo: Array<{ tokenId: number, media: string, name: string, txnType: string, from: string, to: string }>,
             nftAddress: string,
         }> = [];
         // let tkaddress: string | null | undefined = "";
@@ -92,25 +105,32 @@ async function main(): Promise<void> {
             console.log("transfertopics");
             for (let i = 0; i < transferTopics.length; i++) {
                 const r = transferTopics[i];
+                let txnType: string = ""
                 // general nft transfer topics
                 if (r.topics.length === 4) {
                     const token_id = parseInt(r.topics[3]);
                     const token_address = r.address;
+                    const from_address = decodeHexAddress(r.topics[1]);
+                    if (from_address.toLowerCase() === userAddress.toLowerCase()) {
+                        txnType = "sell";
+                    } else {
+                        txnType = "buy";
+                    }
                     const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
 
                     if (existingTokenIndex !== -1) {
                         const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
-                        const media: any = metadata.image.pngUrl;
+                        const media: any = metadata.image.pngUrl || "not available";
                         const name: any = metadata.name;
-                        (NFTDATA[existingTokenIndex]).tokenInfo.push({ tokenId: token_id, media: media, name: name });
+                        (NFTDATA[existingTokenIndex]).tokenInfo.push({ tokenId: token_id, media: media, name: name, txnType: txnType, from: from_address, to: decodeHexAddress(r.topics[2]) });
 
                     } else {
                         // Add a new entry to NFTDATA
                         const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
-                        const media: any = metadata.image.pngUrl;
+                        const media: any = metadata.image.pngUrl || "not available";
                         const name: any = metadata.name;
                         NFTDATA.push({
-                            tokenInfo: [{ tokenId: token_id, media: media, name: name }],
+                            tokenInfo: [{ tokenId: token_id, media: media, name: name, txnType: txnType, from: from_address, to: decodeHexAddress(r.topics[2]) }],
                             nftAddress: token_address,
                         });
                     }
@@ -147,13 +167,19 @@ async function main(): Promise<void> {
                         protocol_address: '0x00000000000000adc04c56bf30ac9d3c0aaf14dc',
                         order_hash: hash
                     });
-
+                    let txnType: string = ""
+                    if (nftOrder.data.order.protocol_data.parameters.offerer === userAddress) {
+                        txnType = "buy"
+                    } else {
+                        txnType = "sell"
+                    }
                     // Use for...of loop instead of map to handle asynchronous operations properly
                     for (const offer of nftOrder.data.order.protocol_data.parameters.offer) {
                         if (offer.itemType === 2) {
+                            const from_address = txnType === "sell" ? userAddress : nftOrder.data.order.protocol_data.parameters.offerer;
+                            const to_address = txnType === "sell" ? nftOrder.data.order.protocol_data.parameters.offerer : userAddress
                             const token_address = offer.token;
                             const token_id = parseInt(offer.identifierOrCriteria);
-
                             let existingTokenIndex = -1;
                             for (let i = 0; i < NFTDATA.length; i++) {
                                 if (NFTDATA[i].nftAddress === token_address) {
@@ -161,18 +187,17 @@ async function main(): Promise<void> {
                                     break;
                                 }
                             }
-
                             if (existingTokenIndex !== -1) {
                                 const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
-                                const media: any = metadata.image.pngUrl;
+                                const media: any = metadata.image.pngUrl || "not available";
                                 const name: any = metadata.name;
-                                (NFTDATA[existingTokenIndex]).tokenInfo.push({ tokenId: token_id, media: media, name: name });
+                                (NFTDATA[existingTokenIndex]).tokenInfo.push({ tokenId: token_id, media: media, name: name, txnType: txnType, from: from_address, to: to_address });
                             } else {
                                 const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
-                                const media: any = metadata.image.pngUrl;
+                                const media: any = metadata.image.pngUrl || "not available";
                                 const name: any = metadata.name;
                                 NFTDATA.push({
-                                    tokenInfo: [{ tokenId: token_id, media: media, name: name }],
+                                    tokenInfo: [{ tokenId: token_id, media: media, name: name, txnType: txnType, from: from_address, to: to_address }],
                                     nftAddress: token_address,
                                 });
                             }
@@ -201,35 +226,41 @@ async function main(): Promise<void> {
 
 
         // checking inside of transferSingle topics
-        if (transferSingleTopics.length !== 0) {
-            transferSingleTopics.map(async (tr: any) => {
-                const token_address = tr.address;
-                const abi = ["uint256", "uint256"]
-                const decodeData = ethers.utils.defaultAbiCoder.decode(abi, tr.data)
-                const token_id = parseInt(decodeData[0]._hex)
+        // if (transferSingleTopics.length !== 0) {
+        //     transferSingleTopics.map(async (tr: any) => {
+        //         const token_address = tr.address;
+        //         const abi = ["uint256", "uint256"]
+        //         const decodeData = ethers.utils.defaultAbiCoder.decode(abi, tr.data)
+        //         const token_id = parseInt(decodeData[0]._hex)
 
-                const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
-                if (existingTokenIndex !== -1) {
-                    const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
-                    const media: any = metadata.image.pngUrl;
-                    const name: any = metadata.name;
-                    (NFTDATA[existingTokenIndex]).tokenInfo.push({ tokenId: token_id, media: media, name: name });
-                } else {
-                    // Add a new entry to NFTDATA
-                    const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
-                    const media: any = metadata.image.pngUrl;
-                    const name: any = metadata.name;
-                    NFTDATA.push({
-                        tokenInfo: [{ tokenId: token_id, media: media, name: name }],
-                        nftAddress: token_address,
-                    });
-                }
-            })
-        }
+        //         const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
+        //         if (existingTokenIndex !== -1) {
+        //             const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
+        //             const media: any = metadata.image.pngUrl;
+        //             const name: any = metadata.name;
+        //             (NFTDATA[existingTokenIndex]).tokenInfo.push({ tokenId: token_id, media: media, name: name });
+        //         } else {
+        //             // Add a new entry to NFTDATA
+        //             const metadata = await alchemy.nft.getNftMetadata(token_address, token_id);
+        //             const media: any = metadata.image.pngUrl;
+        //             const name: any = metadata.name;
+        //             NFTDATA.push({
+        //                 tokenInfo: [{ tokenId: token_id, media: media, name: name }],
+        //                 nftAddress: token_address,
+        //             });
+        //         }
+        //     })
+        // }
 
         const uniqueNFTData = NFTDATA.map(entry => {
-            const uniqueTokens = Array.from(new Set(entry.tokenInfo.map(token => JSON.stringify(token))))
-                .map(str => JSON.parse(str));
+            const uniqueTokens: any = [];
+            entry.tokenInfo.forEach(token => {
+                const existingToken = uniqueTokens.find((t: any) => t.tokenId === token.tokenId);
+
+                if (!existingToken) {
+                    uniqueTokens.push(token);
+                }
+            });
 
             return {
                 tokenInfo: uniqueTokens,
@@ -237,17 +268,19 @@ async function main(): Promise<void> {
             };
         });
 
-        console.log(uniqueNFTData)
-        // checking inside of transferBatch topics
 
 
         if (ERC.length === 0) {
             const formattedNFTData = uniqueNFTData.map((nft) => {
-                const formattedTokenInfo = nft.tokenInfo.map((info) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}`).join("\n\n");
-                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}`;
+                const formattedTokenInfo = nft.tokenInfo.map((info: any) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}\nTxnType: ${info.txnType}\nFrom: ${info.from}\nTo: ${info.to}`).join("\n\n");
+                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}\n\n`;
             }).join("\n\n");
+            
+            var example;
+            console.log(uniqueNFTData)
 
-            const example = {
+            if(uniqueNFTData[0].tokenInfo.length < 4){
+             example = {
                 username: "BOLT",
                 avatar_url: "https://i.imgur.com/4M34hi2.png",
                 content: "",
@@ -277,6 +310,51 @@ async function main(): Promise<void> {
                     },
                 ],
             };
+        }
+            else{
+                uniqueNFTData[0].tokenInfo = uniqueNFTData[0].tokenInfo.slice(0,4)
+                const formattedNFTData = uniqueNFTData.map((nft) => {
+                    const formattedTokenInfo = nft.tokenInfo.map((info: any) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}\nTxnType: ${info.txnType}\nFrom: ${info.from}\nTo: ${info.to}`).join("\n\n");
+                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}\n\n`;
+            }).join("\n\n");
+                example = {
+                    username: "BOLT",
+                    avatar_url: "https://i.imgur.com/4M34hi2.png",
+                    content: "",
+                    embeds: [
+                        {
+                            title: "NFT and Token Data Notification",
+                            color: 15258703,
+                            fields: [
+                                {
+                                    name: "NFT Data",
+                                    value: formattedNFTData,
+                                    inline: true,
+                                },
+                                {
+                                    name: "Txn Value",
+                                    value: `${asset} Value: ${value}`,
+                                    
+                                    inline: true,
+                                },
+                                {
+                                    name: "Txn hash",
+                                    value: `${webhookEvent.event.activity[0].hash}`,
+                                    inline: false,
+                                },
+                            ],
+                            thumbnail: {
+                                url: "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg",
+                            },
+                            footer: {
+                                text: "Woah! So cool! :smirk:",
+                                icon_url: "https://i.imgur.com/fKL31aD.jpg",
+                            },
+                        },
+                    ],
+                }
+            }
+
             await axios.post(discordWH, example).then(response => {
                 console.log('Message posted to Discord successfully:', response.data);
             })
@@ -285,11 +363,10 @@ async function main(): Promise<void> {
                 });
         } else {
             const formattedNFTData = NFTDATA.map((nft) => {
-                const formattedTokenInfo = nft.tokenInfo.map((info) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}`).join("\n\n");
-                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}`;
+                const formattedTokenInfo = nft.tokenInfo.map((info: any) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}\nTxnType: ${info.txnType}\nFrom: ${info.from}\nTo: ${info.to}`).join("\n\n");
+                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}\n\n`;
             }).join("\n\n");
             const formattedERCData = ERC.map((erc) => `Token Name: ${erc.tokenName}\nToken Address: ${erc.tokenAddress}\nValue: ${erc.value / 10 ** 18}`).join("\n\n");
-
             const example = {
                 username: "BOLT",
                 avatar_url: "https://i.imgur.com/4M34hi2.png",
@@ -334,7 +411,11 @@ async function main(): Promise<void> {
             // res.send("Alchemy Notify is the best!");
         }
         res.send("Alchemy Notify is the best!");
-    });
+    }
+    catch(err){
+        console.log("ERROR: ",err)
+    }});
+
 
     // Listen to Alchemy Notify webhook events
     app.listen(port, () => {
