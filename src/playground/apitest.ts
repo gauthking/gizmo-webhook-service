@@ -20,7 +20,7 @@ const caller = async () => {
         const userAddress: string = "0xa5d0D51671645b1509A29bDD4A282940a6dE8E76"
         await sdk.auth('8532fa9c5bdb49d78fb20d8c5bf1059d');
         await sdk.server('https://api.opensea.io');
-        const discordWH = "https://discord.com/api/webhooks/1174257039153823775/M_6lCC30d8bMhP7aqHGHAKePt5rVCfgJ7zZqO8ajZTS2tIhnNDJ3AfJJ8vdabtU4fA7Q"
+        const discordWH = "https://discord.com/api/webhooks/1181000781999128626/avOrNTemHvTM2EjkyVh9zh752j9TGO0y_CFB0s4S8uOLy8zjpe0ZyB46CALmDcTZleFl"
         let tkaddress = ""
         const config = {
             apiKey: "thZ6Uov_nnjBegiTs5aXqlqLHHOjEXII",
@@ -329,9 +329,9 @@ const caller = async () => {
             const formattedERCData = ERC.map((erc) => `Token Name: ${erc.tokenName}\nToken Address: ${erc.tokenAddress}\nValue: ${erc.value / 10 ** 18}`).join("\n\n");
 
             const example = {
-                username: "BOLT",
-                avatar_url: "https://i.imgur.com/4M34hi2.png",
-                content: "",
+                username: "isoTRACK",
+                avatar_url: "https://cdn.discordapp.com/attachments/1092215306488926329/1180998943543406683/twitterpfp.png?ex=657f75fa&is=656d00fa&hm=1d56838d7448a1fbf1caa4a46f2880e7c9729f49873e4d1a7bb30248f5716617&",
+                content: `${formattedNFTData}`,
                 embeds: [
                     {
                         title: "NFT and Token Data Notification",
