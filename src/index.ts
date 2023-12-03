@@ -10,6 +10,8 @@ import { defaultAbiCoder } from "ethers/lib/utils";
 import { ethers } from "ethers";
 import { orderFulfilledTopic, transferBatchTopic, transferSingleTopic, transferTopic } from "./helpers/utils";
 import { ERC20ABI } from "./helpers/utils";
+import addresses from "../src/helpers/addresses.json";
+
 
 const sdk = require('api')('@opensea/v2.0#1nqh2zlnvr1o4h');
 
@@ -27,7 +29,7 @@ function decodeHexAddress(hexString: any) {
 
 async function main(): Promise<void> {
     const app = express();
-    const signingKey = "whsec_WjtWEnxu8YFuSA6Y1bfgl24C"
+    const signingKey = "whsec_EivY8Bx0XtedzJ5IIWCgbnfs"
     const port = 8001;
     const config = {
         apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
@@ -53,14 +55,31 @@ async function main(): Promise<void> {
 
     var asset : any;
     var value : any;
+    var userAddresses : any[] =[];
     //MAIN API POST FOR WEBHOOK
+    addresses.map((addres)=>{
+        userAddresses.push(addres.address.toLowerCase())
+    })
 
-    const userAddress = "0xccac4dedb8071a54be6e5c4c4319965d33450a82"
+    const test = "0xcCac4DeDB8071A54Be6e5C4C4319965D33450a82"
+    userAddresses.push(test.toLowerCase())
     app.post("/webhook-path", async (req, res) => {
         try{
         const webhookEvent = req.body as AlchemyWebhookEvent;
+        var userAddress;
+        console.log(userAddresses)
+        console.log(webhookEvent.event.activity[0].fromAddress)
+        if(userAddresses.includes(webhookEvent.event.activity[0].fromAddress))
+        {
+            console.log("here")
+             userAddress = userAddresses[userAddresses.indexOf(webhookEvent.event.activity[0].fromAddress)]
+        }
+        else if(userAddresses.includes(webhookEvent.event.activity[0].toAddress))
+        {
+            console.log("here")
+             userAddress = userAddresses[userAddresses.indexOf(webhookEvent.event.activity[0].toAddress)]
+        }
 
-        console.log(webhookEvent.event.activity)
 
         if(webhookEvent.event.activity[0].hasOwnProperty('asset'))
         {
@@ -73,6 +92,9 @@ async function main(): Promise<void> {
         // }
         const data: any = await alchemy.core.getTransactionReceipt(
             webhookEvent.event.activity[0].hash);
+
+            console.log(webhookEvent.event.activity[0].hash);
+            console.log(data)
 
         const transferTopics: any[] = data.logs.filter((dta: any) =>
             dta.topics.includes(
@@ -111,10 +133,11 @@ async function main(): Promise<void> {
                     const token_id = parseInt(r.topics[3]);
                     const token_address = r.address;
                     const from_address = decodeHexAddress(r.topics[1]);
+                    console.log(userAddress)
                     if (from_address.toLowerCase() === userAddress.toLowerCase()) {
-                        txnType = "sell";
+                        txnType = "sold";
                     } else {
-                        txnType = "buy";
+                        txnType = "bought";
                     }
                     const existingTokenIndex: any = NFTDATA.findIndex((entry) => entry.nftAddress === token_address);
 
@@ -169,9 +192,9 @@ async function main(): Promise<void> {
                     });
                     let txnType: string = ""
                     if (nftOrder.data.order.protocol_data.parameters.offerer === userAddress) {
-                        txnType = "buy"
+                        txnType = "bought"
                     } else {
-                        txnType = "sell"
+                        txnType = "sold"
                     }
                     // Use for...of loop instead of map to handle asynchronous operations properly
                     for (const offer of nftOrder.data.order.protocol_data.parameters.offer) {
@@ -270,17 +293,11 @@ async function main(): Promise<void> {
 
 
 
-        if (ERC.length === 0) {
-            const formattedNFTData = uniqueNFTData.map((nft) => {
-                const formattedTokenInfo = nft.tokenInfo.map((info: any) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}\nTxnType: ${info.txnType}\nFrom: ${info.from}\nTo: ${info.to}`).join("\n\n");
-                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}\n\n`;
-            }).join("\n\n");
-            
+        if (ERC.length === 0) { 
             var example;
-            console.log(uniqueNFTData)
-
-            if(uniqueNFTData[0].tokenInfo.length < 4){
-             example = {
+            (uniqueNFTData)
+            const formattedNFTData =  `${userAddress} just ${(uniqueNFTData[0].tokenInfo.length > 1) ? `swept ${uniqueNFTData[0].tokenInfo.length}` : uniqueNFTData[0].tokenInfo[0].txnType}  ${uniqueNFTData[0].tokenInfo[0].name} for ${value} ${asset}`;
+            example = {
                 username: "BOLT",
                 avatar_url: "https://i.imgur.com/4M34hi2.png",
                 content: "",
@@ -290,14 +307,14 @@ async function main(): Promise<void> {
                         color: 15258703,
                         fields: [
                             {
-                                name: "NFT Data",
-                                value: formattedNFTData,
+                                name: formattedNFTData,
+                                value: "",
                                 inline: true,
                             },
                             {
-                                name: "Txn Value",
-                                value: `${asset} Value: ${value}`,
-                                inline: true,
+                                name: "Txn hash",
+                                value: `${webhookEvent.event.activity[0].hash}`,
+                                inline: false,
                             },
                         ],
                         thumbnail: {
@@ -309,14 +326,18 @@ async function main(): Promise<void> {
                         },
                     },
                 ],
-            };
-        }
-            else{
-                uniqueNFTData[0].tokenInfo = uniqueNFTData[0].tokenInfo.slice(0,4)
-                const formattedNFTData = uniqueNFTData.map((nft) => {
-                    const formattedTokenInfo = nft.tokenInfo.map((info: any) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}\nTxnType: ${info.txnType}\nFrom: ${info.from}\nTo: ${info.to}`).join("\n\n");
-                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}\n\n`;
-            }).join("\n\n");
+            }
+            
+            await axios.post(discordWH, example).then(response => {
+                console.log('Message posted to Discord successfully:', response.data);
+            })
+                .catch(error => {
+                    console.error('Error posting message to Discord:', error);
+            });
+        } 
+        
+        else {
+                const formattedNFTData =  `${userAddress} just ${(uniqueNFTData[0].tokenInfo.length > 1) ? `swept ${uniqueNFTData[0].tokenInfo.length}` : uniqueNFTData[0].tokenInfo[0].txnType}  ${uniqueNFTData[0].tokenInfo[0].name} for ${ERC[0].value} ${ERC[0].tokenName}`;
                 example = {
                     username: "BOLT",
                     avatar_url: "https://i.imgur.com/4M34hi2.png",
@@ -327,14 +348,8 @@ async function main(): Promise<void> {
                             color: 15258703,
                             fields: [
                                 {
-                                    name: "NFT Data",
-                                    value: formattedNFTData,
-                                    inline: true,
-                                },
-                                {
-                                    name: "Txn Value",
-                                    value: `${asset} Value: ${value}`,
-                                    
+                                    name: formattedNFTData,
+                                    value: "",
                                     inline: true,
                                 },
                                 {
@@ -353,68 +368,21 @@ async function main(): Promise<void> {
                         },
                     ],
                 }
-            }
-
             await axios.post(discordWH, example).then(response => {
                 console.log('Message posted to Discord successfully:', response.data);
+                return
             })
                 .catch(error => {
                     console.error('Error posting message to Discord:', error);
                 });
-        } else {
-            const formattedNFTData = NFTDATA.map((nft) => {
-                const formattedTokenInfo = nft.tokenInfo.map((info: any) => `Token ID: ${info.tokenId}\nMedia: ${info.media}\nName: ${info.name}\nTxnType: ${info.txnType}\nFrom: ${info.from}\nTo: ${info.to}`).join("\n\n");
-                return `NFT Address: ${nft.nftAddress}\nToken Info:\n${formattedTokenInfo}\n\n`;
-            }).join("\n\n");
-            const formattedERCData = ERC.map((erc) => `Token Name: ${erc.tokenName}\nToken Address: ${erc.tokenAddress}\nValue: ${erc.value / 10 ** 18}`).join("\n\n");
-            const example = {
-                username: "BOLT",
-                avatar_url: "https://i.imgur.com/4M34hi2.png",
-                content: "",
-                embeds: [
-                    {
-                        title: "NFT and Token Data Notification",
-                        color: 15258703,
-                        fields: [
-                            {
-                                name: "NFT Data",
-                                value: formattedNFTData,
-                                inline: true,
-                            },
-                            {
-                                name: "Token Data",
-                                value: formattedERCData,
-                                inline: true,
-                            },
-                            // {
-                            //     name: "Txn Value",
-                            //     value: `ETH Value: ${webhookEvent.event.data.value}`,
-                            //     inline: true,
-                            // },
-                        ],
-                        thumbnail: {
-                            url: "https://upload.wikimedia.org/wikipedia/commons/3/38/4-Nature-Wallpapers-2014-1_ukaavUI.jpg",
-                        },
-                        footer: {
-                            text: "Woah! So cool! :smirk:",
-                            icon_url: "https://i.imgur.com/fKL31aD.jpg",
-                        },
-                    },
-                ],
-            };
-            await axios.post(discordWH, example).then(response => {
-                console.log('Message posted to Discord successfully:', response.data);
-            })
-                .catch(error => {
-                    console.error('Error posting message to Discord:', error);
-                });
-            // res.send("Alchemy Notify is the best!");
-        }
-        res.send("Alchemy Notify is the best!");
-    }
+                
+        }   
+}
     catch(err){
         console.log("ERROR: ",err)
-    }});
+    }
+    res.send("Alchemy Notify is the best!");
+});
 
 
     // Listen to Alchemy Notify webhook events
