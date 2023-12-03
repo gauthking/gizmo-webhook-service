@@ -71,12 +71,10 @@ async function main(): Promise<void> {
         console.log(webhookEvent.event.activity[0].fromAddress)
         if(userAddresses.includes(webhookEvent.event.activity[0].fromAddress))
         {
-            console.log("here")
              userAddress = userAddresses[userAddresses.indexOf(webhookEvent.event.activity[0].fromAddress)]
         }
         else if(userAddresses.includes(webhookEvent.event.activity[0].toAddress))
         {
-            console.log("here")
              userAddress = userAddresses[userAddresses.indexOf(webhookEvent.event.activity[0].toAddress)]
         }
 
@@ -377,11 +375,11 @@ async function main(): Promise<void> {
                 });
                 
         }   
-}
+        res.send("Alchemy Notify is the best!");
+    }
     catch(err){
         console.log("ERROR: ",err)
     }
-    res.send("Alchemy Notify is the best!");
 });
 
 
