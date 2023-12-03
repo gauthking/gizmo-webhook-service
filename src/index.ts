@@ -29,7 +29,7 @@ function decodeHexAddress(hexString: any) {
 
 async function main(): Promise<void> {
     const app = express();
-    const signingKey = "whsec_EivY8Bx0XtedzJ5IIWCgbnfs"
+    const signingKey = "whsec_UuVDsiPKAQAjv8VaLUzWQipK"
     const port = 8001;
     const config = {
         apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
