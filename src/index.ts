@@ -94,19 +94,13 @@ async function main(): Promise<void> {
             console.log(webhookEvent.event.activity[0].hash);
             console.log(data)
 
-        const transferTopics: any[] = data.logs.filter((dta: any) =>
+        const transferTopics: any[] = data?.logs.filter((dta: any) =>
             dta.topics.includes(
                 transferTopic
             )
         );
 
-        const transferSingleTopics: any[] = data.logs.filter((dta: any) =>
-            dta.topics.includes(
-                transferSingleTopic
-            )
-        );
-
-        const orderFulfilledTopicsSeaport: any[] = data.logs.filter((dta: any) =>
+        const orderFulfilledTopicsSeaport: any[] = data?.logs.filter((dta: any) =>
             dta.topics.includes(
                 orderFulfilledTopic
             )
