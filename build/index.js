@@ -32,11 +32,11 @@ function decodeHexAddress(hexString) {
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const app = (0, express_1.default)();
-        const signingKey = "whsec_EivY8Bx0XtedzJ5IIWCgbnfs";
+        const signingKey = "whsec_UuVDsiPKAQAjv8VaLUzWQipK";
         const port = 8001;
         const config = {
             apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
-            network: alchemy_sdk_1.Network.MATIC_MUMBAI,
+            network: alchemy_sdk_1.Network.ETH_MAINNET,
         };
         yield sdk.auth('8532fa9c5bdb49d78fb20d8c5bf1059d');
         yield sdk.server('https://api.opensea.io');
@@ -63,11 +63,9 @@ function main() {
                 console.log(userAddresses);
                 console.log(webhookEvent.event.activity[0].fromAddress);
                 if (userAddresses.includes(webhookEvent.event.activity[0].fromAddress)) {
-                    console.log("here");
                     userAddress = userAddresses[userAddresses.indexOf(webhookEvent.event.activity[0].fromAddress)];
                 }
                 else if (userAddresses.includes(webhookEvent.event.activity[0].toAddress)) {
-                    console.log("here");
                     userAddress = userAddresses[userAddresses.indexOf(webhookEvent.event.activity[0].toAddress)];
                 }
                 if (webhookEvent.event.activity[0].hasOwnProperty('asset')) {
@@ -80,9 +78,8 @@ function main() {
                 const data = yield alchemy.core.getTransactionReceipt(webhookEvent.event.activity[0].hash);
                 console.log(webhookEvent.event.activity[0].hash);
                 console.log(data);
-                const transferTopics = data.logs.filter((dta) => dta.topics.includes(utils_1.transferTopic));
-                const transferSingleTopics = data.logs.filter((dta) => dta.topics.includes(utils_1.transferSingleTopic));
-                const orderFulfilledTopicsSeaport = data.logs.filter((dta) => dta.topics.includes(utils_1.orderFulfilledTopic));
+                const transferTopics = data === null || data === void 0 ? void 0 : data.logs.filter((dta) => dta.topics.includes(utils_1.transferTopic));
+                const orderFulfilledTopicsSeaport = data === null || data === void 0 ? void 0 : data.logs.filter((dta) => dta.topics.includes(utils_1.orderFulfilledTopic));
                 const NFTDATA = [];
                 // let tkaddress: string | null | undefined = "";
                 let sum = 0;
@@ -335,11 +332,11 @@ function main() {
                         console.error('Error posting message to Discord:', error);
                     });
                 }
+                res.send("Alchemy Notify is the best!");
             }
             catch (err) {
                 console.log("ERROR: ", err);
             }
-            res.send("Alchemy Notify is the best!");
         }));
         // Listen to Alchemy Notify webhook events
         app.listen(port, () => {

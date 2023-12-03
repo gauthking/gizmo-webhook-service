@@ -33,7 +33,7 @@ async function main(): Promise<void> {
     const port = 8001;
     const config = {
         apiKey: "rZC3EwTnyb4_nr9mH2wQJSk5goVHvVv0",
-        network: Network.MATIC_MUMBAI,
+        network: Network.ETH_MAINNET,
     };
 
     await sdk.auth('8532fa9c5bdb49d78fb20d8c5bf1059d');
