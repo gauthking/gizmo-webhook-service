@@ -128,14 +128,14 @@ function main() {
                                 const erc20 = new ethers_1.ethers.Contract(r.address, utils_2.ERC20ABI, provider);
                                 const existingTokenIndex = ERC.findIndex((entry) => entry.tokenAddress === r.address);
                                 if (existingTokenIndex !== -1) {
-                                    let newValue = ERC[existingTokenIndex].value + parseInt(r.data);
+                                    let newValue = ERC[existingTokenIndex].value + (parseInt(r.data)) / 10 ** 18;
                                     ERC[existingTokenIndex].value = newValue;
                                 }
                                 else {
                                     ERC.push({
                                         tokenAddress: r.address,
                                         tokenName: (yield erc20.name()) || "token_fallback",
-                                        value: parseInt(r.data)
+                                        value: parseInt(r.data) / 10 ** 18
                                     });
                                 }
                             }
@@ -195,14 +195,14 @@ function main() {
                                     const erc20 = new ethers_1.ethers.Contract(offer.token, utils_2.ERC20ABI, provider);
                                     const existingTokenIndex = ERC.findIndex((entry) => entry.tokenAddress === offer.token);
                                     if (existingTokenIndex !== -1) {
-                                        let newValue = ERC[existingTokenIndex].value + parseInt(offer.endAmount);
+                                        let newValue = ERC[existingTokenIndex].value + (parseInt(offer.endAmount) / 10 ** 18);
                                         ERC[existingTokenIndex].value = newValue;
                                     }
                                     else {
                                         ERC.push({
                                             tokenAddress: offer.token,
                                             tokenName: (yield erc20.name()) || "token_fallback",
-                                            value: parseInt(offer.endAmount)
+                                            value: parseInt(offer.endAmount) / 10 ** 18
                                         });
                                     }
                                 }

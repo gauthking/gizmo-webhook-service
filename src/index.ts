@@ -157,13 +157,13 @@ async function main(): Promise<void> {
                         const erc20 = new ethers.Contract(r.address, ERC20ABI, provider);
                         const existingTokenIndex: any = ERC.findIndex((entry) => entry.tokenAddress === r.address);
                         if (existingTokenIndex !== -1) {
-                            let newValue = ERC[existingTokenIndex].value + parseInt(r.data)
+                            let newValue = ERC[existingTokenIndex].value + (parseInt(r.data))/10 ** 18
                             ERC[existingTokenIndex].value = newValue
                         } else {
                             ERC.push({
                                 tokenAddress: r.address,
                                 tokenName: await erc20.name() || "token_fallback",
-                                value: parseInt(r.data)
+                                value: parseInt(r.data)/ 10 ** 18
                             });
                         }
                     }
@@ -222,13 +222,13 @@ async function main(): Promise<void> {
                             const erc20 = new ethers.Contract(offer.token, ERC20ABI, provider);
                             const existingTokenIndex: any = ERC.findIndex((entry) => entry.tokenAddress === offer.token);
                             if (existingTokenIndex !== -1) {
-                                let newValue = ERC[existingTokenIndex].value + parseInt(offer.endAmount)
-                                ERC[existingTokenIndex].value = newValue
+                                let newValue = ERC[existingTokenIndex].value + (parseInt(offer.endAmount)/ 10 ** 18)
+                                ERC[existingTokenIndex].value = newValue 
                             } else {
                                 ERC.push({
                                     tokenAddress: offer.token,
                                     tokenName: await erc20.name() || "token_fallback",
-                                    value: parseInt(offer.endAmount)
+                                    value: parseInt(offer.endAmount) / 10 ** 18
                                 });
                             }
                         }
